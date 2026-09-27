@@ -1,0 +1,28 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "Картофель, 1 кг",
+      "price": 350,
+      "image": "https://placehold.co/300x200"
+    },
+    {
+      "id": 2,
+      "name": "Мёд натуральный, 1 л",
+      "price": 4500,
+      "image": "https://placehold.co/300x200"
+    },
+    {
+      "id": 3,
+      "name": "Молоко фермерское, 1 л",
+      "price": 600,
+      "image": "https://placehold.co/300x200"
+    },
+    {
+      "id": 4,
+      "name": "Яблоки, 1 кг",
+      "price": 700,
+      "image": "https://placehold.co/300x200"
+    }
+  ]
+}

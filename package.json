@@ -1,0 +1,13 @@
+{
+  "name": "agromarket-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "твоя версия",
+    "express": "твоя версия"
+  }
+}
