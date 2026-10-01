@@ -4,10 +4,14 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "db:init": "node db/seed.js",
+    "test": "node --test"
   },
   "dependencies": {
-    "cors": "твоя версия",
-    "express": "твоя версия"
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "pg": "^8.23.1"
   }
 }
