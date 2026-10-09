@@ -12,6 +12,7 @@ test('CRUD, ошибки PostgreSQL, перезапуск Express и ON DELETE S
   let productId;
   let orderId;
   let base;
+  let adminToken;
   async function start() {
     server = spawn(process.execPath, ['server.js'], {
       cwd: new URL('../', import.meta.url),
@@ -36,7 +37,8 @@ test('CRUD, ошибки PostgreSQL, перезапуск Express и ON DELETE S
   }
   async function request(method, path, status, body) {
     const response = await fetch(base + path, {
-      method, headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:5173' },
+      method, headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:5173',
+        ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     assert.equal(response.status, status, `${method} ${path}`);
@@ -46,6 +48,9 @@ test('CRUD, ошибки PostgreSQL, перезапуск Express и ON DELETE S
   }
   try {
     await start();
+    adminToken = (await request('POST', '/auth/login', 200, {
+      email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD,
+    })).token;
     assert.equal((await request('GET', '/health', 200)).db, 'connected');
     assert.equal((await request('GET', '/about', 200)).name, 'АгроМаркет');
     const products = await request('GET', '/products', 200);

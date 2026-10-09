@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import authRouter from './routes/auth.js';
 import { logger } from './middleware/logger.js';
 import productsRouter from './routes/products.js';
 import ordersRouter from './routes/orders.js';
@@ -8,15 +10,20 @@ import { pool } from './db/pool.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
+if (!process.env.JWT_SECRET) {
+  console.error('Не задан JWT_SECRET в .env');
+  process.exit(1);
+}
 const PORT = process.env.PORT || 3000;
 
+app.use(helmet());
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 app.use(logger);
 
 app.get('/', (req, res) => {
@@ -41,6 +48,7 @@ app.get('/api/about', (req, res) => {
   });
 });
 
+app.use('/api/auth', authRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 

@@ -13,26 +13,28 @@ export function errorHandler(err, req, res, next) {
     return next(err);
   }
 
+  if (err.code === '23505') {
+    return res.status(409).json({ error: 'Такая запись уже существует' });
+  }
   if (PG_CLIENT_ERRORS[err.code]) {
     return res.status(400).json({
       error: PG_CLIENT_ERRORS[err.code],
-      detail: err.message,
     });
   }
 
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({
-      error: 'Некорректный JSON',
+      error: 'Некорректный JSON в теле запроса',
     });
   }
 
   if (err.type === 'entity.too.large') {
     return res.status(413).json({
-      error: 'Слишком большое тело запроса',
+      error: 'Слишком большой запрос',
     });
   }
 
-  console.error(err);
+  console.error('Внутренняя ошибка сервера');
 
   res.status(500).json({
     error: 'Внутренняя ошибка сервера',
