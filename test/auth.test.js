@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../tests/loadEnv.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
