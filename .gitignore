@@ -1,4 +1,6 @@
 ﻿node_modules
 .env
+.env.test
+coverage/
 agromarket-server/
 agromarket/

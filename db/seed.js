@@ -12,6 +12,10 @@ try {
   const schema = await readFile(new URL('./schema.sql', import.meta.url), 'utf8');
   const { products } = JSON.parse(await readFile(new URL('../data/db.json', import.meta.url), 'utf8'));
   client = await pool.connect();
+  if (process.env.NODE_ENV === 'test') {
+    const { rows } = await client.query('SELECT current_database() AS name');
+    if (rows[0].name !== 'agromarket_test') throw new Error('Отказ seed: это не тестовая база');
+  }
   await client.query('BEGIN');
   await client.query(schema);
   for (const product of products) {
