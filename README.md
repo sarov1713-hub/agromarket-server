@@ -1,6 +1,8 @@
 # АгроМаркет API
 
-Backend лабораторных №6 и №7: Express 5, PostgreSQL, параметризованные SQL-запросы.
+[![CI](https://github.com/sarov1713-hub/agromarket-server/actions/workflows/ci.yml/badge.svg)](https://github.com/sarov1713-hub/agromarket-server/actions/workflows/ci.yml)
+
+Backend лабораторных №6–8: Express 5, PostgreSQL, параметризованные SQL-запросы.
 Это отдельный npm- и Git-проект внутри frontend. React поддерживает регистрацию, вход и добавление товаров администратором.
 
 ## Запуск
@@ -28,7 +30,7 @@ npm run db:init
 ```
 
 **Повторный `db:init` удаляет таблицы orders, products и users со всеми данными**, затем
-создаёт их заново создаёт администратора из переменных окружения и загружает четыре товара из [data/db.json](./data/db.json).
+создаёт их заново, создаёт администратора из переменных окружения и загружает четыре товара из [data/db.json](./data/db.json).
 Все действия выполняются в транзакции: при ошибке изменения откатываются.
 SERIAL выдаёт идентификаторы; единица товара берётся из окончания названия (`л`/`кг`).
 Не запускать эту команду для обычного перезапуска сервера.
@@ -78,17 +80,11 @@ PATCH принимает `{ "status": "processing" }`. Допустимые ст
 
 ## Проверки
 
-Автоматические интеграционные проверки на реальной БД:
-
-```powershell
-npm test
-```
-
-Требуется доступная и инициализированная база из `.env` и свободные порты 3106 и 3107.
-Тест запускает собственный Express, проверяет CRUD, валидацию, SQL-ограничения,
-поиск, некорректный JSON, перезапускает Express и проверяет сохранение товара/заявки.
-После удаления товара проверяет `ON DELETE SET NULL`. Удаляет только собственные
-тестовые записи; `db:init` не запускает.
+Актуальный запуск Vitest описан в разделе «Тестирование» ниже.
+Старые node:test из [test/](./test/) сохранены для истории ЛР7 и не входят в npm test.
+Они также загружают только .env.test и отказываются работать с рабочей базой.
+При необходимости их можно запустить отдельно после инициализации тестовой базы
+через npm test: `node --test test/*.test.js` (нужны свободные порты 3106/3107).
 
 Postman: импортировать [коллекцию v2.1](./postman/agromarket.postman_collection.json)
 и запустить все 18 запросов через Collection Runner по порядку.
@@ -231,26 +227,101 @@ Email регистрации содержит timestamp и guid, поэтому 
 - Без `express.json()` JSON-тело не разбирается, `req.body` остаётся неопределённым.
 - ИИ использовался для объяснения Express, middleware, CORS и отправки формы из React.
 
-## Git и настройки
+## Тестирование
 
-`.env` и `node_modules` исключены из Git; `.env.example` содержит только пример пароля.
-Строка подключения не печатается в логах. Все пользовательские значения в SQL
-передаются параметрами. Коммит и push автоматически не выполнялись.
-Команды выполнять именно в отдельном backend-репозитории:
+Рабочая база — agromarket, тестовая — **agromarket_test**.
+Все команды выполняются из отдельного backend-репозитория.
 
-```powershell
-cd D:\agromarket-react\agromarket-server
-git status
-git add .
-git commit -m "lab7: users, bcrypt, JWT auth, roles, rate limit, helmet"
-```
+1. Создать agromarket_test на PostgreSQL (в текущем окружении уже создана).
+   Для Windows-хоста должен быть разрешён доступ именно к этой базе в pg_hba.conf.
+2. Создать локальный .env.test на основе .env, сохранив параметры подключения,
+   но заменив имя базы в DATABASE_URL на agromarket_test. Не публиковать строку подключения.
+   Задать NODE_ENV=test, отдельный тестовый JWT_SECRET, JWT_EXPIRES_IN=2h,
+   ADMIN_EMAIL, ADMIN_PASSWORD и CORS_ORIGIN=http://localhost:5173.
+3. Установить зависимости: `npm ci`.
+4. Выполнить `npm test`.
+5. Для наблюдения за изменениями: `npm run test:watch`; выход — q или Ctrl+C.
+6. Покрытие: `npm run coverage`. HTML-отчёт: [coverage/index.html](./coverage/index.html).
 
-Push выполняется владельцем проекта после проверки.
+Конфигурация загружает .env.test с override; при отсутствии файла локальный запуск
+завершается ошибкой, к рабочему .env не переходит. В GitHub Actions файл не нужен:
+используются job env и отдельный PostgreSQL 16 service.
 
-Frontend коммитится отдельно из D:\agromarket-react. Добавлять только изменённые файлы src,
-не вложенные backend/старые проекты:
+До запуска db:init globalSetup проверяет строку подключения. Защита проверяет точное
+имя agromarket_test, а не только вхождение test: имя хоста или пароль со словом test
+не разрешают сброс рабочей базы. URL с параметрами переопределения базы отклоняется.
+Та же защита стоит перед созданием Pool при NODE_ENV=test, а seed дополнительно
+проверяет SELECT current_database() перед DDL.
 
-```powershell
-git add src/api.js src/App.jsx src/layout.css src/components/LoginForm.jsx src/components/AddProductForm.jsx src/components/ContactForm.jsx src/components/ProductCard.jsx
-git commit -m "lab7: login/register form, apiFetch with token, admin product form"
-```
+**Каждый новый запуск Vitest пересоздаёт только тестовую БД.** Рабочая база не используется.
+В tests/ пять файлов: health, products, auth, access, middleware. Уникальные email
+исключают конфликты; CRUD-сценарий создаёт собственный товар. fileParallelism=false,
+изолированные forks и afterAll(pool.end) закрывают подключения каждого файла.
+Unit-тесты middleware используют vi.fn и не выполняют SQL или HTTP-запросов;
+общий интеграционный запуск при этом сначала готовит тестовую базу.
+
+Результаты 16.10.2026: **5 test files, 36 tests, 0 failed**, три финальных запуска
+npm test подряд прошли одинаково. Coverage: **84,96% Lines (113/133)**; routes — 95,18%.
+Первый замер был 84,21%: по отчёту добавлена проверка неверного типа category.
+Watch проверен: DEV / Waiting for file changes, затем остановлен клавишей q.
+В script явно указан --watch, чтобы CI-подобное окружение не превращало его в разовый запуск.
+
+Рабочая база проверена до/после: products — 5, orders — 1, users — 3;
+SHA-256 полных строк всех трёх таблиц совпали. Данные не изменились.
+Попытка seed с NODE_ENV=test и рабочим DATABASE_URL блокируется до подключения.
+При первом запуске pg_hba.conf разрешал только рабочую базу; после добавления владельцем
+правила для agromarket_test тесты стали доступны. Рабочая база для обхода отказа не использовалась.
+
+## Правила работы с Git
+
+- main всегда рабочая; разработка в feature/... или fix/....
+- Изменения попадают в main через PR, зелёный CI и review.
+- Conventional Commits: feat, fix, test, refactor, docs, ci, chore.
+- Backend и frontend — отдельные репозитории и отдельные коммиты/PR.
+- .env, .env.test, coverage/ и node_modules/ не коммитятся.
+- Workflow CI запускается для pull_request и push в main. Один push feature-ветки
+  без PR не запускает этот workflow; до создания PR зелёный CI на GitHub не заявляется.
+
+Backend PR: base main, compare feature/api-tests,
+название: `test: API tests, test database and CI`.
+Frontend PR: base main, compare feature/env-config,
+название: `feat: read API_URL from VITE_API_URL`.
+
+В GitHub вручную: Pull requests → New pull request → выбрать base/compare →
+заполнить шаблон → Create pull request. Дождаться CI, пригласить напарника на review.
+Не выполнять merge до завершения review.
+
+Branch protection: Settings → Branches → Add branch protection rule → main.
+Включить Require a pull request before merging, Require approvals (1),
+Require status checks to pass (выбрать job test после первого запуска CI).
+Не разрешать force pushes и удаление защищённой ветки. Проверить, распространяется ли
+правило на владельца репозитория, прежде чем демонстрировать запрет прямого push.
+
+С напарником: оставить два содержательных комментария и suggestion в его PR,
+после исправлений выполнить Approve; получить его review своего PR, исправить замечания.
+Эксперимент прямого push в protected main и Squash and merge проводить самостоятельно
+в GitHub после настройки защиты. Эти действия агентом не выполняются.
+
+## Лабораторная 8 — ответы
+
+1. При замене 200 на 201 упал health.test.js:7: Expected 201 / Received 200.
+   Expected — ожидание теста, Received — фактический ответ API. После возврата 200 тест зелёный.
+   При снятии adminOnly только с POST products упали три теста access.test.js:
+   без токена (ожидалось 401), от user (403), JWT с чужой подписью (401).
+   Во всех трёх случаях фактически получено 201: любой клиент мог создавать товары.
+   adminOnly восстановлен, сломанная версия не коммитилась; весь набор снова зелёный.
+2. Lines coverage — **84,96% (113/133)**. [routes/orders.js, строка 36](./routes/orders.js)
+   возвращает 400 при отсутствии status в PATCH. Тесты передают processing и lost,
+   но не пустое тело PATCH, поэтому эта строка не выполнена.
+   logger.js имеет 0%: он специально не подключается при NODE_ENV=test.
+3. Unit-тест requireRole вызывает одну функцию с mock req/res/next и проверяет
+   её решение без HTTP и БД. Integration test access.test.js проходит настоящую
+   цепочку Express через Supertest: JWT, middleware прав, SQL и HTTP-ответ.
+4. Замечания к нашей работе: **Будет заполнено после review**.
+5. Замечания напарнику: **Будет заполнено после review**.
+6. ИИ использовался для помощи с реализацией, тестами, CI и проверкой лабораторной.
+
+Для отчёта сохранить скриншоты зелёного Vitest, обоих красных экспериментов,
+coverage, GitHub CI, PR и review (комментарии/suggestion/Approve), настройки защиты,
+отказа прямого push и итогового Squash and merge. Фактические замечания и исправления
+добавить в пункты 4–5 после review, не заменять их вымышленными результатами.
