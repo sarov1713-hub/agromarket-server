@@ -80,6 +80,12 @@ test('admin: неверная цена — 400', async () => {
   await request(app).post('/api/products').auth(adminToken, { type: 'bearer' }).send({ ...newProduct, price: -5 }).expect(400);
 });
 
+test('admin: category должна быть строкой — 400', async () => {
+  const response = await request(app).post('/api/products').auth(adminToken, { type: 'bearer' })
+    .send({ ...newProduct, category: 123 }).expect(400);
+  expect(response.body.error).toMatch(/должны быть строками/);
+});
+
 test('заявка меньше 10 кг — 400', async () => {
   const response = await request(app).post('/api/orders').send({ name: 'Тест', email: uniqueEmail(), quantity: 5 }).expect(400);
   expect(response.body.error).toMatch(/10 кг/);
