@@ -1,7 +1,11 @@
-import { expect, test, vi } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { assertTestDatabase } from '../db/testSafety.js';
+import { assertSeedAllowed } from '../db/seedSafety.js';
+import { errorHandler } from '../middleware/errorHandler.js';
+
+afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 function mockRes() {
   const res = {};
@@ -72,4 +76,50 @@ test('защита БД отклоняет production, в том числе test
   ]) expect(() => assertTestDatabase({ DATABASE_URL })).toThrow(/тестовой базой/);
   expect(() => assertTestDatabase({ PGDATABASE: 'agromarket_test' })).toThrow();
   expect(() => assertTestDatabase({ DATABASE_URL: 'postgres://postgres:password@localhost/agromarket_test' })).not.toThrow();
+});
+
+test('production скрывает сообщение 5xx, полная ошибка остаётся в серверном логе', () => {
+  vi.stubEnv('NODE_ENV', 'production');
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const error = new Error('connect ECONNREFUSED 10.0.0.5:5432');
+  const res = mockRes();
+  errorHandler(error, {}, res, vi.fn());
+  expect(res.status).toHaveBeenCalledWith(500);
+  expect(res.json).toHaveBeenCalledWith({ error: 'Внутренняя ошибка сервера' });
+  expect(log).toHaveBeenCalledWith(error);
+});
+
+test('production сохраняет понятное сообщение 4xx', () => {
+  vi.stubEnv('NODE_ENV', 'production');
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  const error = Object.assign(new Error('Проверьте параметры заявки'), { status: 400 });
+  const res = mockRes();
+  errorHandler(error, {}, res, vi.fn());
+  expect(res.status).toHaveBeenCalledWith(400);
+  expect(res.json).toHaveBeenCalledWith({ error: error.message });
+});
+
+test('development сохраняет сообщение ошибки и statusCode', () => {
+  vi.stubEnv('NODE_ENV', 'development');
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  const error = Object.assign(new Error('Development detail'), { statusCode: 503 });
+  const res = mockRes();
+  errorHandler(error, {}, res, vi.fn());
+  expect(res.status).toHaveBeenCalledWith(503);
+  expect(res.json).toHaveBeenCalledWith({ error: error.message });
+});
+
+test('seed: loopback разрешён, удалённая БД требует --force', () => {
+  expect(() => assertSeedAllowed({ DATABASE_URL: 'postgres://u:p@localhost/agromarket' }, [])).not.toThrow();
+  expect(() => assertSeedAllowed({ DATABASE_URL: 'postgres://u:p@127.0.0.1/agromarket' }, [])).not.toThrow();
+  for (const host of ['remote.example', 'localhost.evil.example', '192.168.157.128']) {
+    const env = { DATABASE_URL: `postgres://u:localhost@${host}/agromarket` };
+    expect(() => assertSeedAllowed(env, [])).toThrow(/НЕ на локальной/);
+    expect(() => assertSeedAllowed(env, ['--force'])).not.toThrow();
+  }
+});
+
+test('seed: --force не отключает защиту рабочей базы от тестов', () => {
+  expect(() => assertSeedAllowed({ NODE_ENV: 'test', DATABASE_URL: 'postgres://u:p@localhost/agromarket' }, ['--force'])).toThrow(/тестовой базой/);
+  expect(() => assertSeedAllowed({ NODE_ENV: 'test', DATABASE_URL: 'postgres://u:p@remote.example/agromarket_test' }, ['--force'])).not.toThrow();
 });

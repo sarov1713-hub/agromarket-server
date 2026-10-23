@@ -51,7 +51,7 @@ test('CRUD, ошибки PostgreSQL, перезапуск Express и ON DELETE S
     adminToken = (await request('POST', '/auth/login', 200, {
       email: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD,
     })).token;
-    assert.equal((await request('GET', '/health', 200)).db, 'connected');
+    assert.equal((await request('GET', '/health', 200)).db, 'ok');
     assert.equal((await request('GET', '/about', 200)).name, 'АгроМаркет');
     const products = await request('GET', '/products', 200);
     assert.ok(products.some((p) => p.name === 'Молоко фермерское, 1 л' && p.price === 600 && p.image));

@@ -2,8 +2,10 @@ import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { readFile } from 'node:fs/promises';
 import { pool } from './pool.js';
+import { assertSeedAllowed } from './seedSafety.js';
 let client;
 try {
+  assertSeedAllowed();
   if (!process.env.ADMIN_EMAIL?.trim() || !process.env.ADMIN_PASSWORD ||
       process.env.ADMIN_PASSWORD.length < 8 || Buffer.byteLength(process.env.ADMIN_PASSWORD) > 72) {
     throw new Error('Настройте ADMIN_EMAIL и ADMIN_PASSWORD (8 символов, максимум 72 байта)');
@@ -35,7 +37,7 @@ try {
   console.log(`База инициализирована. Товаров: ${products.length}`);
 } catch (error) {
   if (client) await client.query('ROLLBACK');
-  console.error('Не удалось инициализировать БД. Код:', error.code ?? 'unknown');
+  console.error(error.code ? `Не удалось инициализировать БД. Код: ${error.code}` : error.message);
   process.exitCode = 1;
 } finally {
   client?.release();

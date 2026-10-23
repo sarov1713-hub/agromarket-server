@@ -51,7 +51,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('БД подключена', () => pm.expect(pm.response.json().db).to.eql('connected'));"
+              "pm.test('БД подключена', () => pm.expect(pm.response.json().db).to.eql('ok'));"
             ]
           }
         }
