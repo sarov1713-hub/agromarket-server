@@ -9,6 +9,7 @@ const PG_CLIENT_ERRORS = {
 };
 
 export function errorHandler(err, req, res, next) {
+  console.error(err);
   if (res.headersSent) {
     return next(err);
   }
@@ -34,9 +35,11 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  console.error('Внутренняя ошибка сервера');
-
-  res.status(500).json({
-    error: 'Внутренняя ошибка сервера',
+  const candidate = Number(err.status || err.statusCode || 500);
+  const status = Number.isInteger(candidate) && candidate >= 400 && candidate <= 599 ? candidate : 500;
+  res.status(status).json({
+    error: status >= 500 && process.env.NODE_ENV === 'production'
+      ? 'Внутренняя ошибка сервера'
+      : err.message || 'Внутренняя ошибка сервера',
   });
 }

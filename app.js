@@ -9,11 +9,15 @@ import { pool } from './db/pool.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
+const VERSION = (process.env.RENDER_GIT_COMMIT || 'local').slice(0, 7);
+app.set('trust proxy', 1);
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',').map((origin) => origin.trim()).filter(Boolean);
 
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: allowedOrigins,
   })
 );
 
@@ -27,13 +31,12 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/health', async (req, res) => {
-  await pool.query('SELECT 1');
-
-  res.json({
-    status: 'ok',
-    db: 'connected',
-    time: new Date().toISOString(),
-  });
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', db: 'ok', version: VERSION });
+  } catch {
+    res.status(503).json({ status: 'error', db: 'unavailable', version: VERSION });
+  }
 });
 
 app.get('/api/about', (req, res) => {
