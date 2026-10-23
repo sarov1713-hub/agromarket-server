@@ -8,6 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:16
@@ -22,6 +23,7 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+
     env:
       NODE_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/agromarket_test
@@ -35,11 +37,41 @@ jobs:
       ADMIN_EMAIL: admin@test.kz
       ADMIN_PASSWORD: Admin12345
       CORS_ORIGIN: http://localhost:5173
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+
       - run: npm ci
       - run: npm test
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: production
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Trigger Render deploy
+        run: |
+          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}&ref=${{ github.sha }}"
+
+      - name: Smoke test
+        env:
+          API_URL: ${{ vars.API_URL }}
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+          EXPECTED_VERSION: ${{ github.sha }}
+        run: node scripts/smoke.js
