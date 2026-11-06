@@ -1,19 +1,13 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { rateLimit } from 'express-rate-limit';
+import { authLimiter } from '../middleware/rateLimit.js';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { loginSchema, registerSchema } from '../validation/schemas.js';
 
 const router = Router();
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
-  skipSuccessfulRequests: true,
-  message: { error: 'Слишком много попыток входа. Попробуйте через 15 минут' },
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-});
 
 function createToken(user) {
   return jwt.sign({ sub: String(user.id), role: user.role }, process.env.JWT_SECRET, {
@@ -21,15 +15,8 @@ function createToken(user) {
   });
 }
 
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, validate(registerSchema), async (req, res) => {
   const { name, email, password } = req.body ?? {};
-  if (typeof name !== 'string' || !name.trim() || typeof email !== 'string' ||
-      !email.trim() || typeof password !== 'string' || !password) {
-    return res.status(400).json({ error: 'Поля name, email и password обязательны' });
-  }
-  if (password.length < 8 || Buffer.byteLength(password) > 72) {
-    return res.status(400).json({ error: 'Пароль должен содержать минимум 8 символов и не более 72 байт' });
-  }
   const hash = await bcrypt.hash(password, 10);
   const { rows } = await pool.query(
     `INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3)
@@ -40,11 +27,8 @@ router.post('/register', async (req, res) => {
   res.status(201).json({ user, token: createToken(user) });
 });
 
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
   const { email, password } = req.body ?? {};
-  if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || !password) {
-    return res.status(400).json({ error: 'Поля email и password обязательны' });
-  }
   const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email.trim().toLowerCase()]);
   const user = rows[0];
   if (!user || Buffer.byteLength(password) > 72 || !await bcrypt.compare(password, user.password_hash)) {
