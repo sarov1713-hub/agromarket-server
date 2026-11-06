@@ -1,6 +1,7 @@
 import 'dotenv/config';
-const missing = ['DATABASE_URL', 'JWT_SECRET', 'CORS_ORIGIN']
+const missing = ['DATABASE_URL', 'JWT_SECRET']
   .filter((key) => !process.env[key]?.trim());
+if (!(process.env.CORS_ORIGINS ?? process.env.CORS_ORIGIN)?.trim()) missing.push('CORS_ORIGINS (или CORS_ORIGIN)');
 if (missing.length) {
   console.error(`Не заданы обязательные переменные: ${missing.join(', ')}`);
   process.exit(1);

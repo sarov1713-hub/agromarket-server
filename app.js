@@ -10,18 +10,21 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
 const VERSION = (process.env.RENDER_GIT_COMMIT || 'local').slice(0, 7);
-app.set('trust proxy', 1);
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+// Прямой локальный доступ не должен доверять присланному клиентом IP.
+app.set('trust proxy', process.env.RENDER === 'true' ? 1 : false);
+const allowedOrigins = (process.env.CORS_ORIGINS ?? process.env.CORS_ORIGIN ?? 'http://localhost:5173')
   .split(',').map((origin) => origin.trim()).filter(Boolean);
 
 app.use(helmet());
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin(origin, callback) {
+      callback(null, !origin || allowedOrigins.includes(origin));
+    },
   })
 );
 
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '100kb' }));
 if (process.env.NODE_ENV !== 'test') {
   app.use(logger);
 }
