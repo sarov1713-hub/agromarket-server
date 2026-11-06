@@ -380,15 +380,47 @@ Frontend: **23 теста прошли**, npm run lint и npm run build успе
 8. CORS управляет браузерным доступом к ответу, а не правами пользователя; JWT и requireRole сохраняются.
 9. Лимит тела уменьшает расход памяти/CPU на слишком большие запросы.
 10. После 10 запросов общий лимит блокировал login и register с 429, RateLimit и Retry-After; test-окружение не ограничено.
-11. Rollback: **Не проверено** — требуется явное разрешение на production и доступ Vercel. Время не измерялось.
-12. Instant Rollback не исправляет исходный код, следующий deploy может вернуть дефект.
-13. git revert фиксирует отмену отдельным коммитом без переписывания истории. Для demo ещё не выполнен, поскольку он не слит.
+11. **Rollback Vercel выполнен успешно 06.11.2026.** Через PR #8 в `main` было добавлено демонстрационное изменение заголовка на «СЛОМАНО» (merge-коммит `b56231a`). После развёртывания выполнен Promote предыдущего рабочего деплоя `e66f9bc` в Production. Заголовок восстановлен на «Свежие фермерские продукты». Точное время восстановления не измерялось.
+
+12. **Почему одного Rollback недостаточно:** Vercel восстанавливает предыдущую опубликованную версию, но не исправляет исходный код в GitHub. При следующем деплое ошибка могла появиться снова.
+
+13. **Git Revert выполнен.** Создан коммит `15b53b4`, отменяющий изменения демонстрационного PR #8. Исправление отправлено через PR #9 и объединено с `main` (merge-коммит `c9b8f25`). GitHub Actions CI #13 завершился успешно. Рабочий заголовок восстановлен без переписывания истории Git.
 14. Codex использован для анализа, реализации безопасности, тестов, аудита и документации.
 
 ### Production, PR и релиз
 
-Read-only проверка действующего Render: https://agromarket-api-sarov1713-hub.onrender.com/api/health → 200, db=ok, version=676738b. У Vercel origin есть разрешающий CORS-заголовок, у evil.example нет. https://agromarket-react.vercel.app показывает четыре товара. Это **старая опубликованная версия**, новые изменения ЛР11 ещё не развёрнуты.
+**Дата завершения: 06.11.2026.**
 
-Ветки: backend security/hardening; docs/lab11 создана поверх неё и содержит только дополнительные документы. Сначала PR security/hardening → main, затем docs/lab11 → main (либо stacked PR docs/lab11 → security/hardening до её merge). Frontend: security/server-errors. Draft demo/rollback-lab11 не сливать без отдельного разрешения. Публикация тегов/Release отложена до CI, review, merge, deploy и согласия владельца.
+**Backend (Render):**
+- API: https://agromarket-api-sarov1713-hub.onrender.com
+- Изменения лабораторной №11 успешно развёрнуты.
+- Последний проверенный коммит деплоя: `fbd4c94`.
+- Статус Render: Live.
+- CORS_ORIGINS: `https://agromarket-react.vercel.app,http://localhost:5173`.
 
-[Ответы для защиты и PowerShell-команды](LAB11_DEFENSE.md). [Release notes, условия публикации и план rollback](RELEASE_NOTES_v1.0.0.md).
+**Frontend (Vercel):**
+- Сайт: https://agromarket-react.vercel.app
+- Каталог товаров и основной функционал работают.
+- После демонстрационного Rollback восстановлен правильный заголовок.
+- Исправление закреплено в GitHub через git revert.
+
+**Pull Requests:**
+- Backend security: https://github.com/sarov1713-hub/agromarket-server/pull/4 — Merged.
+- Backend documentation: https://github.com/sarov1713-hub/agromarket-server/pull/5 — Merged.
+- Frontend validation errors: https://github.com/sarov1713-hub/agromarket-react/pull/7 — Merged.
+- Rollback demonstration: https://github.com/sarov1713-hub/agromarket-react/pull/8 — Merged.
+- Revert demonstration: https://github.com/sarov1713-hub/agromarket-react/pull/9 — Merged.
+
+Все перечисленные изменения объединены с `main`. CI-проверки основных изменений и revert завершились успешно. Формальные ревью напарника отсутствуют.
+
+**GitHub Releases v1.0.0:**
+- Backend: https://github.com/sarov1713-hub/agromarket-server/releases/tag/v1.0.0
+- Frontend: https://github.com/sarov1713-hub/agromarket-react/releases/tag/v1.0.0
+
+Оба релиза опубликованы 06.11.2026.
+
+**Rollback:**
+
+Для демонстрации через PR #8 был временно изменён заголовок главной страницы на «СЛОМАНО». В Vercel предыдущий рабочий деплой `e66f9bc` повторно назначен Production через Promote. После этого выполнен `git revert`, создан PR #9 и исправление объединено с `main`.
+
+Итог: сайт восстановлен, история Git сохранена, демонстрационная ошибка устранена. Точное время отката не измерялось.
