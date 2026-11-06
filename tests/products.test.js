@@ -33,5 +33,5 @@ test('поиск ILIKE без учёта регистра', async () => {
 
 test('неверный id возвращает JSON 400', async () => {
   const { body } = await request(app).get('/api/products/abc').expect(400).expect('Content-Type', /json/);
-  expect(body.error).toBe('Неверный формат значения');
+  expect(body.error).toBe('Некорректный id');
 });

@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import { assertTestDatabase } from '../db/testSafety.js';
 
-const path = fileURLToPath(new URL('../.env.test', import.meta.url));
+const path = process.env.TEST_ENV_FILE || fileURLToPath(new URL('../.env.test', import.meta.url));
 const { parsed, error } = dotenv.config({ path, override: true, quiet: true });
 if (error && (!process.env.CI || error.code !== 'ENOENT')) {
   throw new Error('Не удалось загрузить .env.test. Рабочий .env не используется.');

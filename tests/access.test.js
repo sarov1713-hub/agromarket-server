@@ -83,7 +83,7 @@ test('admin: неверная цена — 400', async () => {
 test('admin: category должна быть строкой — 400', async () => {
   const response = await request(app).post('/api/products').auth(adminToken, { type: 'bearer' })
     .send({ ...newProduct, category: 123 }).expect(400);
-  expect(response.body.error).toMatch(/должны быть строками/);
+  expect(response.body.details).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'category' })]));
 });
 
 test('заявка меньше 10 кг — 400', async () => {
