@@ -1,19 +1,11 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { rateLimit } from 'express-rate-limit';
+import { authLimiter } from '../middleware/rateLimit.js';
 import { pool } from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
-  skipSuccessfulRequests: true,
-  message: { error: 'Слишком много попыток входа. Попробуйте через 15 минут' },
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-});
 
 function createToken(user) {
   return jwt.sign({ sub: String(user.id), role: user.role }, process.env.JWT_SECRET, {
@@ -21,7 +13,7 @@ function createToken(user) {
   });
 }
 
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { name, email, password } = req.body ?? {};
   if (typeof name !== 'string' || !name.trim() || typeof email !== 'string' ||
       !email.trim() || typeof password !== 'string' || !password) {
@@ -40,7 +32,7 @@ router.post('/register', async (req, res) => {
   res.status(201).json({ user, token: createToken(user) });
 });
 
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body ?? {};
   if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || !password) {
     return res.status(400).json({ error: 'Поля email и password обязательны' });
