@@ -20,8 +20,17 @@ const image = z.string().trim().max(2048).refine((value) => {
 }, 'Изображение: HTTP(S) URL или относительный путь /...').nullable();
 const productFields = {
   name: text(2, 200), price, category: text(1, 50),
-  unit: text(1, 20), image,
+  unit: text(1, 20), image, stock: z.number().int().min(0).max(2147483647),
 };
-export const productSchema = z.object({ ...productFields, unit: productFields.unit.default('кг'), image: image.optional() });
+export const productSchema = z.object({
+  ...productFields, unit: productFields.unit.default('кг'), image: image.optional(),
+  stock: productFields.stock.optional(),
+});
 export const productUpdateSchema = z.object(productFields).partial()
   .refine((data) => Object.keys(data).length > 0, 'Укажите хотя бы одно поле товара');
+
+const positiveInteger = z.number().int().min(1).max(2147483647);
+export const orderSchema = z.object({
+  address: text(1, 500),
+  items: z.array(z.object({ productId: positiveInteger, quantity: positiveInteger })).min(1).max(100),
+});
