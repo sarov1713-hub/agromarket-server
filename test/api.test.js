@@ -65,13 +65,13 @@ test('CRUD, ошибки PostgreSQL, перезапуск Express и ON DELETE S
       await request('POST', '/products', 400, { name: 'Тест', price });
     }
     await request('POST', '/products', 400, { price: 100 });
-    const product = await request('POST', '/products', 201, { name: 'API integration test', price: 100, category: 'test', image: 'test.png' });
+    const product = await request('POST', '/products', 201, { name: 'API integration test', price: 100, category: 'test', image: '/test.png' });
     productId = product.id;
     assert.equal(typeof productId, 'number');
     assert.equal((await request('GET', `/products/${productId}`, 200)).price, 100);
-    const updated = await request('PUT', `/products/${productId}`, 200, { name: 'API integration updated', price: 150 });
+    const updated = await request('PUT', `/products/${productId}`, 200, { name: 'API integration updated', price: 150, category: 'updated' });
     assert.equal(updated.price, 150);
-    assert.equal(updated.category, null);
+    assert.equal(updated.category, 'updated');
     assert.equal(updated.image, null);
     const body = { name: 'API integration test', email: 'test@example.com', quantity: '20', phone: '+70000000000', date: '2026-12-15', comment: 'test' };
     assert.match((await request('POST', '/orders/wholesale', 400, { ...body, quantity: 5 })).error, /10 кг/);
