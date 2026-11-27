@@ -59,7 +59,7 @@ test('GET orders от admin — массив', async () => {
 test('публичная заявка, смена статуса и ON DELETE SET NULL', async () => {
   const { body: product } = await request(app).post('/api/products').auth(adminToken, { type: 'bearer' }).send(newProduct).expect(201);
   try {
-    const { body: order } = await request(app).post('/api/orders').send({
+    const { body: order } = await request(app).post('/api/orders/wholesale').send({
       name: 'Тестовая заявка', email: uniqueEmail(), quantity: 20, product_id: product.id, date: '2026-12-15',
     }).expect(201);
     expect(order.delivery_date).toBe('2026-12-15');
@@ -87,6 +87,6 @@ test('admin: category должна быть строкой — 400', async () =>
 });
 
 test('заявка меньше 10 кг — 400', async () => {
-  const response = await request(app).post('/api/orders').send({ name: 'Тест', email: uniqueEmail(), quantity: 5 }).expect(400);
+  const response = await request(app).post('/api/orders/wholesale').send({ name: 'Тест', email: uniqueEmail(), quantity: 5 }).expect(400);
   expect(response.body.error).toMatch(/10 кг/);
 });

@@ -6,7 +6,7 @@ import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pool } from '../db/pool.js';
 
-// Реальная БД из .env. Удаляются только записи, созданные этим тестом.
+// Отдельная agromarket_test. Удаляются только записи, созданные этим тестом.
 test('CRUD, ошибки PostgreSQL, перезапуск Express и ON DELETE SET NULL', async (t) => {
   let server;
   let productId;
@@ -74,11 +74,11 @@ test('CRUD, ошибки PostgreSQL, перезапуск Express и ON DELETE S
     assert.equal(updated.category, null);
     assert.equal(updated.image, null);
     const body = { name: 'API integration test', email: 'test@example.com', quantity: '20', phone: '+70000000000', date: '2026-12-15', comment: 'test' };
-    assert.match((await request('POST', '/orders', 400, { ...body, quantity: 5 })).error, /10 кг/);
-    await request('POST', '/orders', 400, { ...body, quantity: 10.5 });
-    await request('POST', '/orders', 400, { ...body, product_id: 2147483647 });
-    await request('POST', '/orders', 400, { ...body, date: '2026-02-30' });
-    const order = await request('POST', '/orders', 201, { ...body, product_id: productId });
+    assert.match((await request('POST', '/orders/wholesale', 400, { ...body, quantity: 5 })).error, /10 кг/);
+    await request('POST', '/orders/wholesale', 400, { ...body, quantity: 10.5 });
+    await request('POST', '/orders/wholesale', 400, { ...body, product_id: 2147483647 });
+    await request('POST', '/orders/wholesale', 400, { ...body, date: '2026-02-30' });
+    const order = await request('POST', '/orders/wholesale', 201, { ...body, product_id: productId });
     orderId = order.id;
     assert.equal(order.delivery_date, body.date);
     assert.equal((await request('GET', '/orders', 200)).find((o) => o.id === orderId).product_name, updated.name);

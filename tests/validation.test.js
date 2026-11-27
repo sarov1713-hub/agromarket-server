@@ -54,3 +54,21 @@ test('длинный UTF-8 пароль и отсутствие email откло
   await request(app).post('/api/auth/register').send({ ...user(), password: 'я'.repeat(37) }).expect(400);
   await request(app).post('/api/auth/login').send({ password: 'test' }).expect(400);
 });
+
+test('администратор задаёт и изменяет остаток, PUT без stock сохраняет его', async () => {
+  const { body: created } = await request(app).post('/api/products').auth(token, { type: 'bearer' })
+    .send({ ...product, stock: 10 }).expect(201);
+  const path = `/api/products/${created.id}`;
+  try {
+    expect(created.stock).toBe(10);
+    const { body } = await request(app).put(path).auth(token, { type: 'bearer' }).send(product).expect(200);
+    expect(body.stock).toBe(10);
+    for (const stock of [-1, 1.5, 2147483648, '2']) {
+      await request(app).patch(path).auth(token, { type: 'bearer' }).send({ stock }).expect(400);
+    }
+    const { body: updated } = await request(app).patch(path).auth(token, { type: 'bearer' }).send({ stock: 0 }).expect(200);
+    expect(updated.stock).toBe(0);
+  } finally {
+    await request(app).delete(path).auth(token, { type: 'bearer' }).expect(204);
+  }
+});
