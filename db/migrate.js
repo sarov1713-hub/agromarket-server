@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
+import { readFile } from 'node:fs/promises';
 import { pool } from './pool.js';
 
 const statements = [
@@ -39,8 +40,11 @@ let client;
 try {
   client = await pool.connect();
   await client.query('BEGIN');
+  await client.query('SELECT pg_advisory_xact_lock(130013)');
   for (const sql of statements) await client.query(sql);
-  let count = statements.length;
+  const ordersMigration = await readFile(new URL('./migrations/013_orders.sql', import.meta.url), 'utf8');
+  await client.query(ordersMigration);
+  let count = statements.length + 1;
   if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
     if (!process.env.ADMIN_EMAIL.trim() || process.env.ADMIN_PASSWORD.length < 8 ||
         Buffer.byteLength(process.env.ADMIN_PASSWORD) > 72) {

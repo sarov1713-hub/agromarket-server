@@ -20,6 +20,10 @@ try {
   }
   await client.query('BEGIN');
   await client.query(schema);
+  if (!process.argv.includes('--legacy-schema') || process.env.NODE_ENV !== 'test') {
+    const migration = await readFile(new URL('./migrations/013_orders.sql', import.meta.url), 'utf8');
+    await client.query(migration);
+  }
   for (const product of products) {
     // В исходных данных единица указана только в названии.
     const unit = product.name.endsWith(' л') ? 'л' : 'кг';

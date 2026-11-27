@@ -45,7 +45,7 @@ app.get('/api/health', async (req, res) => {
 app.get('/api/about', (req, res) => {
   res.json({
     name: 'АгроМаркет',
-    version: '1.0',
+    version: '1.1.0',
     author: 'Шаров Александр Сергеевич',
   });
 });

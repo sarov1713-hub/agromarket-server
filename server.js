@@ -15,7 +15,7 @@ if (process.env.NODE_ENV === 'production' && process.env.JWT_SECRET.length < 32)
 const { default: app } = await import('./app.js');
 const { pool } = await import('./db/pool.js');
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, process.env.NODE_ENV === 'test' ? '127.0.0.1' : undefined, () => {
   console.log(`АгроМаркет API: http://localhost:${PORT}`);
 });
 
