@@ -443,7 +443,7 @@
             "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/orders",
+        "url": "{{baseUrl}}/orders/wholesale",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"name\": \"Тест\",\n  \"email\": \"t@t.kz\",\n  \"quantity\": 20\n}",
@@ -477,7 +477,7 @@
             "value": "application/json"
           }
         ],
-        "url": "{{baseUrl}}/orders",
+        "url": "{{baseUrl}}/orders/wholesale",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"name\": \"Тест\",\n  \"email\": \"t@t.kz\",\n  \"quantity\": 5\n}",
